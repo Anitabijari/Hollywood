@@ -1,0 +1,1266 @@
+USE HollywoodData
+GO
+
+-- there are some code to do for all 
+-- here is a stored procedure to check for duplicate values in different tables
+CREATE PROCEDURE CheckForDuplicates
+AS
+BEGIN
+    -- Check for duplicate ActorID values in the Actor table
+    IF (SELECT COUNT(*) FROM Actor GROUP BY ActorID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate ActorID values found in the Actor table';
+    ELSE
+        PRINT 'No duplicate ActorID values in the Actor table';
+
+    -- Check for duplicate ActressID values in the Actress table
+    IF (SELECT COUNT(*) FROM Actress GROUP BY ActressID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate ActressID values found in the Actress table';
+    ELSE
+        PRINT 'No duplicate ActressID values in the Actress table';
+
+    -- Check for duplicate AwardID values in the Award table
+    IF (SELECT COUNT(*) FROM Award GROUP BY AwardID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate AwardID values found in the Award table';
+    ELSE
+        PRINT 'No duplicate AwardID values in the Award table';
+
+    -- Check for duplicate CharacterID values in the Character table
+    IF (SELECT COUNT(*) FROM Character GROUP BY CharacterID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate CharacterID values found in the Character table';
+    ELSE
+        PRINT 'No duplicate CharacterID values in the Character table';
+
+    -- Check for duplicate DirectorID values in the Director table
+    IF (SELECT COUNT(*) FROM Director GROUP BY DirectorID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate DirectorID values found in the Director table';
+    ELSE
+        PRINT 'No duplicate DirectorID values in the Director table';
+
+    -- Check for duplicate GenreID values in the Genre table
+    IF (SELECT COUNT(*) FROM Genre GROUP BY GenreID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate GenreID values found in the Genre table';
+    ELSE
+        PRINT 'No duplicate GenreID values in the Genre table';
+
+    -- Check for duplicate ProducerID values in the Producer table
+    IF (SELECT COUNT(*) FROM Producer GROUP BY ProducerID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate ProducerID values found in the Producer table';
+    ELSE
+        PRINT 'No duplicate ProducerID values in the Producer table';
+
+    -- Check for duplicate StudioID values in the Studio table
+    IF (SELECT COUNT(*) FROM Studio GROUP BY StudioID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate StudioID values found in the Studio table';
+    ELSE
+        PRINT 'No duplicate StudioID values in the Studio table';
+
+    -- Check for duplicate MovieID values in the Movie table
+    IF (SELECT COUNT(*) FROM Movie GROUP BY MovieID HAVING COUNT(*) > 1) > 0
+        PRINT 'Duplicate MovieID values found in the Movie table';
+    ELSE
+        PRINT 'No duplicate MovieID values in the Movie table';
+END
+GO
+
+EXEC CheckForDuplicates
+GO
+--//////////////////////////////////////////////////
+
+--First Actor table 
+-- Check for NULL values in the Actor table
+CREATE PROCEDURE CheckNullValuesInActor
+    @IncludeActorID BIT = 1,
+    @IncludeFirstName BIT = 1,
+    @IncludeLastName BIT = 1,
+    @IncludeBirthday BIT = 1,
+    @IncludeAgeOfExperience BIT = 1,
+    @IncludeFirstJobDate BIT = 1,
+    @IncludeMaritalStatus BIT = 1,
+    @IncludeCountryOfLiving BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ActorID,
+        FirstName,
+        LastName,
+        Birthday,
+        AgeOfExperience,
+        FirstJobDate,
+        MaritalStatus,
+        CountryOfLiving
+    FROM
+        Actor
+    WHERE
+        (@IncludeActorID = 1 AND ActorID IS NULL) OR
+        (@IncludeFirstName = 1 AND FirstName IS NULL) OR
+        (@IncludeLastName = 1 AND LastName IS NULL) OR
+        (@IncludeBirthday = 1 AND Birthday IS NULL) OR
+        (@IncludeAgeOfExperience = 1 AND AgeOfExperience IS NULL) OR
+        (@IncludeFirstJobDate = 1 AND FirstJobDate IS NULL) OR
+        (@IncludeMaritalStatus = 1 AND MaritalStatus IS NULL) OR
+        (@IncludeCountryOfLiving = 1 AND CountryOfLiving IS NULL);
+END
+GO
+-- Include all columns
+EXEC CheckNullValuesInActor
+GO
+             ----------------------------------------
+-- 1:[ActorID]
+--2:[FirstName]
+--3:[LastName]
+--7:[MaritalStatus]
+ --8:[CountryOfLiving]
+  --contorl Range Check Domain Check for [FirstName] [LastName]MaritalStatus CountryOfLiving
+SELECT 
+	FirstName,
+	LastName,
+	MaritalStatus ,
+	CountryOfLiving,
+	CASE
+	WHEN
+    (LEN(FirstName) NOT BETWEEN 1 AND 50)
+    OR (LEN(LastName) NOT BETWEEN 1 AND 50)
+    OR (MaritalStatus NOT IN ('Married', 'Single', 'Divorced'))
+    OR (LEN(CountryOfLiving) NOT BETWEEN 1 AND 50) THEN 'Not Correct'
+	ELSE  'Correct'
+	END AS RangeCheckMessege
+FROM Actor
+GO
+	             ----------------------------------------
+--4:[Birthday]  cheaking datetype for Birthday is corrcet 
+-- datetime using the 'dd/MM/yyyy' format (style code 103)
+SELECT
+    Birthday,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN 'Valid Date'
+        ELSE 'Invalid Date'
+    END AS DateValidation
+FROM
+    Actor
+ORDER BY
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN 1
+        ELSE 0
+    END  -- Order by Valid Dates first (1) and then Invalid Dates (0)
+	GO
+	         ----------------------------------------
+--5:[AgeOfExperience] cheacking if AgeOfExperience is not bigger than 77 which is from google largest 
+
+--AgeOfExperience not - which is not correct at all 
+SELECT
+    FirstName,
+    LastName,
+    AgeOfExperience,
+    CASE
+        WHEN ISNUMERIC(AgeOfExperience) = 0 THEN 'Error: AgeOfExperience contains non-numeric value'
+        WHEN CAST(AgeOfExperience AS INT) < 0 OR CAST(AgeOfExperience AS INT) > 100 THEN 'Error: AgeOfExperience out of range'
+        ELSE 'Valid'
+    END AS AgeValidation
+FROM
+  Actor
+ORDER BY
+    AgeOfExperience;
+GO
+   ----------------------------------------
+ --6: [FirstJobDate]  cheaking datetype for FirstJobDate is corrcet 
+ SELECT
+	FirstJobDate,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, FirstJobDate, 103) IS NOT NULL THEN  'Valid Date'
+            
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+    dbo.Actor
+	ORDER BY
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN 1
+        ELSE 0
+    END  -- Order by Valid Dates first (1) and then Invalid Dates (0)
+	GO
+	----------------------------------------
+
+--Identify rows where the MaritalStatus FirstName LastName
+--CountryOfLiving initial character does not begin with a capital letter
+-- Create the view
+CREATE VIEW NonCapitalActorView AS
+SELECT 
+    FirstName,
+	LastName,
+	MaritalStatus,
+	CountryOfLiving,
+    CASE 
+        WHEN NOT (
+            (ASCII(SUBSTRING(FirstName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (ASCII(SUBSTRING(LastName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (
+                ISNULL(MaritalStatus, '') <> '' AND
+                (ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+            OR (
+                ISNULL(CountryOfLiving, '') <> '' AND
+                (ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+        )
+        THEN 'All do not begin with a capital letter'
+        ELSE 'All begin with a capital letter'
+    END AS Validationspelling
+FROM 
+    Actor
+GO
+SELECT *
+FROM NonCapitalActorView
+GO
+ --//////////////////////////////////////////////////
+
+-- Actress table
+--Cheaking Null
+-- Stored procedure to check for NULL values in Actress table
+CREATE PROCEDURE CheckNullValuesInActress
+    @IncludeActressID BIT = 1,
+    @IncludeFirstName BIT = 1,
+    @IncludeLastName BIT = 1,
+    @IncludeBirthday BIT = 1,
+    @IncludeAgeOfExperience BIT = 1,
+    @IncludeFirstJobDate BIT = 1,
+    @IncludeMaritalStatus BIT = 1,
+    @IncludeCountryOfLiving BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ActressID,
+        FirstName,
+        LastName,
+        Birthday,
+        AgeOfExperience,
+        FirstJobDate,
+        MaritalStatus,
+        CountryOfLiving
+    FROM
+        Actress
+    WHERE
+        (@IncludeActressID = 1 AND ActressID IS NULL) OR
+        (@IncludeFirstName = 1 AND FirstName IS NULL) OR
+        (@IncludeLastName = 1 AND LastName IS NULL) OR
+        (@IncludeBirthday = 1 AND Birthday IS NULL) OR
+        (@IncludeAgeOfExperience = 1 AND AgeOfExperience IS NULL) OR
+        (@IncludeFirstJobDate = 1 AND FirstJobDate IS NULL) OR
+        (@IncludeMaritalStatus = 1 AND MaritalStatus IS NULL) OR
+        (@IncludeCountryOfLiving = 1 AND CountryOfLiving IS NULL);
+END
+GO
+EXEC CheckNullValuesInActress
+GO
+   ----------------------------------------
+--Actress Table
+-- 1:[ActressID]
+-- 2:[FirstName]
+  --contorl Range Check and Domain Check for [FirstName] [LastName]MaritalStatus CountryOfLiving
+SELECT
+	FirstName,
+	LastName,
+	MaritalStatus ,
+	CountryOfLiving,
+	CASE
+	WHEN
+    (LEN(FirstName) NOT BETWEEN 1 AND 50)
+    OR (LEN(LastName) NOT BETWEEN 1 AND 50)
+    OR (MaritalStatus NOT IN ('Married', 'Single', 'Divorced', 'Engaged'))
+    OR (LEN(CountryOfLiving) NOT BETWEEN 1 AND 50) THEN 'Not Correct'
+	ELSE  'Correct'
+	END AS RangeCheckMessege
+	FROM
+		Actress
+	GO
+	   ----------------------------------------
+
+-- 3:[LastName]
+-- 4:[Birthday] cheaking datetype for Birthday is corrcet 
+SELECT
+	Birthday,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN 'Valid Date'
+            
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+    Actress;
+GO
+   ----------------------------------------
+
+--5:[AgeOfExperience] cheacking if AgeOfExperience is not bigger than 77 which is from google largest  AgeOfExperience
+--not - which is not correct at all 
+SELECT
+    FirstName,
+    LastName,
+    AgeOfExperience,
+    CASE
+        WHEN ISNUMERIC(AgeOfExperience) = 0
+		THEN 'Error: AgeOfExperience contains non-numeric value'
+        WHEN CAST(AgeOfExperience AS INT) < 0 OR CAST(AgeOfExperience AS INT) > 100 
+		THEN 'Error: AgeOfExperience out of range'
+        ELSE 'Valid'
+    END AS AgeValidation
+FROM
+    Actress 
+ORDER BY
+    AgeOfExperience
+GO
+	   ----------------------------------------
+
+ --6: [FirstJobDate]  cheaking datetype for FirstJobDate is corrcet 
+ SELECT
+	FirstJobDate,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, FirstJobDate, 103) IS NOT NULL THEN
+             'Valid Date'
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+    Actress;
+	GO
+		   ----------------------------------------
+
+-- 7:[MaritalStatus]
+-- 8:[CountryOfLiving]
+--Identify rows where the MaritalStatus FirstName LastName
+--CountryOfLiving initial character does not begin with a capital letter
+CREATE VIEW NonCapitalActressView AS
+SELECT 
+    FirstName,
+	LastName,
+	MaritalStatus,
+	CountryOfLiving,
+    CASE 
+        WHEN NOT (
+            (ASCII(SUBSTRING(FirstName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (ASCII(SUBSTRING(LastName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (
+                ISNULL(MaritalStatus, '') <> '' AND
+                (ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+            OR (
+                ISNULL(CountryOfLiving, '') <> '' AND
+                (ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+        )
+        THEN 'Everything  does not begin with a capital letter'
+        ELSE 'Everything begin with a capital letter'
+    END AS Validationspelling
+FROM Actress
+GO
+SELECT *
+FROM NonCapitalActressView
+GO
+--//////////////////////////////////////////////////
+--Award table
+
+-- 1:[AwardID]
+-- 3:[Category]
+-- 4:[Winner]
+
+ --contorl Range Check and Domain Check for Category  Winner
+SELECT 
+    Category,
+    Winner,
+    CASE 
+        WHEN (LEN(Category) BETWEEN 1 AND 50) OR (Winner IN (1, 0)) THEN 'Correct'
+        ELSE 'Not Correct'
+    END AS ResultOfRangeCheck
+FROM 
+    Award
+	GO
+	----------------------------------------
+--Identify rows where the Category
+-- Winne initial character does not begin with a capital letter
+CREATE VIEW NonCapitalAward AS
+SELECT 
+	Category,
+	Case 
+	when  Not
+    (CAST(ASCII(SUBSTRING(Category, 1, 1)) AS CHAR) BETWEEN 'A' AND 'Z') THEN 'Category  begin with a capital letter'
+        ELSE 'Category does not begin with a capital letter'
+    END AS ResultOfCapitalLetter
+
+FROM Award
+GO
+SELECT *
+FROM NonCapitalAward;
+GO
+         ----------------------------------------
+     --Cheaking Null
+
+CREATE PROCEDURE CheckNullValuesInAward
+    @IncludeAwardID BIT = 1,
+    @IncludeCategory BIT = 1,
+    @IncludeWinner BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        AwardID,
+        Category,
+        Winner
+    FROM
+        Award
+    WHERE
+        (@IncludeAwardID = 1 AND AwardID IS NULL) OR
+        (@IncludeCategory = 1 AND Category IS NULL) OR
+        (@IncludeWinner = 1 AND Winner IS NULL);
+END
+GO
+EXEC CheckNullValuesInAward
+GO
+--//////////////////////////////////////////////////
+
+--Character table
+-- 1:[CharacterID]
+-- 2:[CharacterName]
+ --contorl Range Check and Domain Check for CharacterName
+SELECT 
+	CharacterName,
+   CASE
+WHEN
+    (LEN(CharacterName) NOT BETWEEN 1 AND 50) THEN 'Not correct'
+        ELSE 'Correct'
+		END as ValidationMessage
+FROM Character
+GO
+--Identify rows where the CharacterName initial character does not begin with a capital letter
+-- Create the view
+CREATE VIEW CapitalCharacterView AS
+SELECT 
+    CharacterName,
+    CASE 
+        WHEN ASCII(SUBSTRING(CharacterName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') THEN 'Capital letter completely correct'
+        ELSE 'Not Correct'
+    END AS ValidationMessage
+FROM 
+    Character;
+GO
+SELECT *FROM CapitalCharacterView
+GO
+----------------------------------------
+-- 3:[ActorID]
+-- 4:[ActressID]
+--Cheaking Null
+-- Stored procedure to check for NULL values in Character table
+CREATE PROCEDURE CheckNullValuesInCharacter
+    @IncludeCharacterID BIT = 1,
+    @IncludeCharacterName BIT = 1
+	-- [ActorID]  allow to be null
+     -- [ActressID   allow to be null
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        CharacterID,
+        CharacterName
+    FROM
+        Character
+    WHERE
+        (@IncludeCharacterID = 1 AND CharacterID IS NULL) OR
+        (@IncludeCharacterName = 1 AND CharacterName IS NULL) 
+END
+Go
+
+EXEC  CheckNullValuesInCharacter
+GO
+----------------------------------------
+CREATE PROCEDURE CheckInvalidCharacterForeignKeys
+AS
+BEGIN
+    IF (
+        EXISTS (
+            SELECT 1
+            FROM Character
+            WHERE 
+                 ActorID IS NOT NULL AND ActorID NOT IN (SELECT ActorID FROM Actor)
+                OR ActressID IS NOT NULL AND ActressID NOT IN (SELECT ActressID FROM Actress)
+        )
+    )
+    BEGIN
+        PRINT 'Invalid foreign key references found in Character table.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'All foreign key references in Character table are valid.';
+	END
+END
+GO
+	EXEC CheckInvalidCharacterForeignKeys
+	GO
+	----------------------------------------
+--checks for mismatches between movie characters and actors based on their character names, indicating 
+--if there's no character information for an actor 
+SELECT 
+    m.Title,
+    a.FirstName AS ActorFirstName,
+    a.LastName AS ActorLastName,
+    c.CharacterName,
+    CASE 
+        WHEN c.CharacterName IS NULL THEN 'No character information for actor is matched'
+        ELSE 'No issues'
+    END AS CheckResult
+FROM 
+    Movie m
+LEFT JOIN 
+   [Character] c 
+ON 
+    m.ActorID = c.ActorID
+LEFT JOIN
+  Actor a
+ON 
+    m.ActorID = a.ActorID
+GO
+
+
+--//////////////////////////////////////////////////
+
+-- Director table
+-- 1:[DirectorID]
+-- 2:[FirstName]
+-- 3:[LastName]
+ --contorl Range Check and Domain Check for [FirstName LastName
+SELECT 
+	FirstName,
+	LastName,
+	CASE
+	WHEN
+    (LEN(FirstName) NOT BETWEEN 1 AND 50)
+    OR (LEN(LastName) NOT BETWEEN 1 AND 50) THEN 'Not Correct'
+	ELSE 'Correct'
+	END AS MESSEGRangeCheck
+	FROM Director 
+	Go
+	----------------------------------------
+
+--Identify rows where the FirstName
+--LastName initial 
+
+CREATE VIEW CapitalDirectorView AS
+SELECT
+	FirstName,
+	LastName,
+	CASE
+	WHEN 
+   ASCII(SUBSTRING(FirstName, 1, 1)) NOT BETWEEN ASCII('A') AND ASCII('Z')
+   OR ASCII(SUBSTRING(LastName, 1, 1)) NOT BETWEEN ASCII('A') AND ASCII('Z') THEN 'Director info does not begin with a capital letter'
+   ELSE 'Director info begin with a capital letter' 
+   END AS  CapitalDirector
+FROM Director
+GO
+ SELECT * FROM CapitalDirectorView
+ GO
+ ----------------------------------------
+-- 4:[Birthday] cheaking datetype for Birthday is corrcet 
+SELECT
+	Birthday,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN 
+            'Valid Date'
+            
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+Director
+GO
+----------------------------------------
+--Cheaking Null
+-- Stored procedure to check for NULL values in Director table
+CREATE PROCEDURE CheckNullValuesInDirector
+    @IncludeDirectorID BIT = 1,
+    @IncludeFirstName BIT = 1,
+    @IncludeLastName BIT = 1,
+    @IncludeBirthday BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        DirectorID,
+        FirstName,
+        LastName,
+        Birthday
+    FROM
+        Director
+    WHERE
+        (@IncludeDirectorID = 1 AND DirectorID IS NULL) OR
+        (@IncludeFirstName = 1 AND FirstName IS NULL) OR
+        (@IncludeLastName = 1 AND LastName IS NULL) OR
+        (@IncludeBirthday = 1 AND Birthday IS NULL);
+END
+GO
+EXEC  CheckNullValuesInDirector
+GO
+--//////////////////////////////////////////////////
+
+-- Genre table
+-- 1:[GenreID]
+-- 2:[GenreName]
+
+ --contorl Range Check and Domain Check for GenreName
+SELECT 
+	GenreName,
+	CASE 
+	WHEN
+    (LEN(GenreName) NOT BETWEEN 1 AND 50) THEN 'Not Correct'
+	ELSE 'Correct'
+	END AS ValidationMesseg
+FROM Genre
+GO
+----------------------------------------
+--Identify rows where the GenreName initial character does not begin with a capital letter
+
+CREATE VIEW CapitalGenreView AS
+SELECT 
+	GenreName,
+	CASE
+	WHEN ASCII(SUBSTRING(GenreName, 1, 1)) NOT BETWEEN ASCII('A') AND ASCII('Z')  THEN 'GenreName does not begin with a capital letter'
+
+ELSE  'GenreName  begin with a capital letter'
+END AS ValidationCapitalLetter
+ FROM Genre
+GO
+ SELECT * FROM CapitalGenreView
+ GO
+ ----------------------------------------
+ -- Checking  NULL
+SELECT
+    GenreID,
+    GenreName
+FROM
+    Genre
+WHERE
+    GenreID IS NULL OR
+    GenreName IS NULL;
+GO
+--//////////////////////////////////////////////////
+
+-- Producer table
+--Cheaking Null
+-- Stored procedure to check for NULL values in Producer table
+CREATE PROCEDURE CheckNullValuesInProducer
+    @IncludeProducerID BIT = 1,
+    @IncludeFirstName BIT = 1,
+    @IncludeLastName BIT = 1,
+    @IncludeBirthday BIT = 1,
+    @IncludeAgeOfExperience BIT = 1,
+	@IncludeMeanAgeOfExperience  BIT = 1,
+	@IncludeStdDevAgeOfExperience BIT = 1,
+	@IncludeZScoreAgeOfExperience BIT = 1,
+    @IncludeFirstJobDate BIT = 1,
+    @IncludeMaritalStatus BIT = 1,
+    @IncludeCountryOfLiving BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ProducerID,
+        FirstName,
+        LastName,
+        Birthday,
+        AgeOfExperience,
+		MeanAgeOfExperience,
+		StdDevAgeOfExperience,
+		ZScoreAgeOfExperience,
+        FirstJobDate,
+        MaritalStatus,
+        CountryOfLiving
+    FROM
+        Producer
+    WHERE
+        (@IncludeProducerID = 1 AND ProducerID IS NULL) OR
+        (@IncludeFirstName = 1 AND FirstName IS NULL) OR
+        (@IncludeLastName = 1 AND LastName IS NULL) OR
+        (@IncludeBirthday = 1 AND Birthday IS NULL) OR
+        (@IncludeAgeOfExperience = 1 AND AgeOfExperience IS NULL) OR
+		(@IncludeMeanAgeOfExperience = 1 AND MeanAgeOfExperience IS NULL) OR
+		(@IncludeStdDevAgeOfExperience= 1 AND StdDevAgeOfExperience IS NULL) OR
+		(@IncludeZScoreAgeOfExperience = 1 AND ZScoreAgeOfExperience IS NULL) OR
+        (@IncludeFirstJobDate = 1 AND FirstJobDate IS NULL) OR
+        (@IncludeMaritalStatus = 1 AND MaritalStatus IS NULL) OR
+        (@IncludeCountryOfLiving = 1 AND CountryOfLiving IS NULL);
+END
+GO
+EXEC CheckNullValuesInProducer
+GO
+----------------------------------------
+-- 1:[ProducerID]
+-- 2:[FirstName]
+-- 3:[LastName]
+-- 10:[MaritalStatus]
+-- 11:[CountryOfLiving]
+  --contorl Range Check for [FirstName] [LastName]MaritalStatus CountryOfLiving
+SELECT
+	FirstName,
+	LastName,
+	MaritalStatus ,
+	CountryOfLiving,
+	CASE
+	WHEN
+    (LEN(FirstName) NOT BETWEEN 1 AND 50)
+    OR (LEN(LastName) NOT BETWEEN 1 AND 50)
+    OR (MaritalStatus NOT IN ('Married', 'Single', 'Divorced', 'Engaged'))
+    OR (LEN(CountryOfLiving) NOT BETWEEN 1 AND 50) THEN 'Not Correct'
+	ELSE  'Correct'
+	END AS RangeCheckMessege
+	
+FROM Producer
+GO
+ ----------------------------------------
+-- 4:[Birthday] cheaking datetype for Birthday is corrcet 
+SELECT
+	Birthday,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, Birthday, 103) IS NOT NULL THEN'Valid Date'
+            
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+   Producer
+   GO
+   ----------------------------------------
+--5:[AgeOfExperience] cheacking if AgeOfExperience is not bigger than 77 which is from google largest  AgeOfExperience
+--not - which is not correct at all 
+SELECT
+    ProducerID,
+    FirstName,
+    LastName,
+    AgeOfExperience,
+    CASE
+        WHEN ISNUMERIC(AgeOfExperience) = 0 THEN 'Error: AgeOfExperience contains non-numeric value'
+        WHEN CAST(AgeOfExperience AS INT) < 0 OR CAST(AgeOfExperience AS INT) > 100 THEN 'Error: AgeOfExperience out of range'
+        ELSE 'Valid'
+    END AS AgeValidation
+FROM
+    Producer
+ORDER BY
+    AgeOfExperience
+	GO
+
+	----------------------------------------
+--6:MeanAgeOfExperience
+--check if all values in the Mean column of your dataset are exactly the same
+SELECT
+    CASE
+        WHEN COUNT(DISTINCT MeanAgeOfExperience) = 1 THEN 'All values are the same'
+        ELSE 'Not all values are the same'
+    END AS CheckResult
+FROM Producer
+GO;
+----------------------------------------
+--7:StdDevAgeOfExperience
+--check if all values in the StdDevRating column of your dataset are exactly the same
+
+SELECT
+    CASE
+        WHEN COUNT(DISTINCT StdDevAgeOfExperience) = 1 THEN 'All values are the same'
+        ELSE 'Not all values are the same'
+    END AS CheckResult
+FROM Producer
+GO;
+----------------------------------------
+--8:[ZScoreAgeOfExperience]
+	--9: [FirstJobDate]  cheaking datetype for FirstJobDate is corrcet 
+ SELECT
+	FirstJobDate,
+    CASE
+        WHEN TRY_CONVERT(DATETIME, FirstJobDate, 103) IS NOT NULL THEN 'Valid Date'
+            
+        ELSE
+            'Invalid Date'
+    END AS DateValidation
+FROM
+   Producer
+   GO;
+   ----------------------------------------
+
+--Identify rows where the MaritalStatus FirstName LastName
+--CountryOfLiving initial character does not begin with a capital letter
+CREATE VIEW CapitalProducerView AS
+SELECT 
+    FirstName,
+	LastName,
+	MaritalStatus,
+	CountryOfLiving,
+    CASE 
+        WHEN NOT (
+            (ASCII(SUBSTRING(FirstName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (ASCII(SUBSTRING(LastName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+            OR (
+                ISNULL(MaritalStatus, '') <> '' AND
+                (ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(MaritalStatus, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+            OR (
+                ISNULL(CountryOfLiving, '') <> '' AND
+                (ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z') OR ASCII(SUBSTRING(CountryOfLiving, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+            )
+        )
+        THEN 'ALL do not begin with a capital letter'
+        ELSE 'ALL begin with a capital letter'
+    END AS Validationspelling
+FROM Producer
+GO
+  SELECT * FROM CapitalProducerView
+  GO
+----------------------------------------
+--ZSCORE CACULATION  FOR Producer AgeOfExperience
+CREATE PROCEDURE CalculateZScoresProducer
+AS
+BEGIN
+    -- Declare variables to store mean and standard deviation
+    DECLARE @Mean DECIMAL(10, 1), @StdDev DECIMAL(10, 4);
+
+    -- Calculate mean and standard deviation
+    SELECT 
+        @Mean = CAST(AVG(CAST(AgeOfExperience AS DECIMAL(10, 1))) AS DECIMAL(10, 1)),
+        @StdDev = STDEVP(CAST(AgeOfExperience AS DECIMAL(10, 4)))
+    FROM Producer;
+
+    -- Select the FirstName, AgeOfExperience, MeanAgeOfExperience, StdDevAgeOfExperience, and ZScoreAgeOfExperience
+    SELECT 
+        FirstName,
+        AgeOfExperience,
+        @Mean AS MeanAgeOfExperience,
+        @StdDev AS StdDevAgeOfExperience,
+        ROUND(ZScoreAgeOfExperience,4) AS ZscoreExcell ,
+        ROUND((CAST(AgeOfExperience AS DECIMAL(10, 1)) - @Mean) / @StdDev,4) AS ZScoreSQL
+    FROM [Producer];
+END
+GO
+EXEC CalculateZScoresProducer
+GO
+----------------------------------------
+
+------ Create a PROCEDURE to the comparison results
+CREATE PROCEDURE CompareZScoresProducer
+AS
+BEGIN
+    SELECT 
+        FirstName,
+        AgeOfExperience,
+        ROUND(ZScoreAgeOfExperience, 4) AS ZScoreExcel,
+        ROUND((CAST(AgeOfExperience AS DECIMAL(10, 1)) - MeanAgeOfExperience) / StdDevAgeOfExperience, 4) AS ZScoreSOL,
+        CASE 
+            WHEN ROUND(ZScoreAgeOfExperience, 4) = ROUND((CAST(AgeOfExperience AS DECIMAL(10, 1)) - MeanAgeOfExperience) / StdDevAgeOfExperience, 4)
+            THEN 'It is ok'
+            ELSE 'It is not ok'
+        END AS ComparisonResult
+    FROM [Producer];
+END;
+GO
+EXEC CompareZScoresProducer;
+GO
+--//////////////////////////////////////////////////
+
+-- Studio table
+--Cheaking Null
+-- Stored procedure to check for NULL values in Studio table
+CREATE PROCEDURE CheckNullValuesInStudio
+    @IncludeStudioID BIT = 1,
+    @IncludeStudioName BIT = 1,
+    @IncludeAddress BIT = 1,
+    @IncludePhone BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        StudioID,
+        StudioName,
+        Address,
+        Phone
+    FROM
+        Studio
+    WHERE
+        (@IncludeStudioID = 1 AND StudioID IS NULL) OR
+        (@IncludeStudioName = 1 AND StudioName IS NULL) OR
+        (@IncludeAddress = 1 AND Address IS NULL) OR
+        (@IncludePhone = 1 AND Phone IS NULL);
+END
+GO
+EXEC CheckNullValuesInStudio
+GO
+----------------------------------------
+-- 1:[StudioID]
+-- 2:[StudioName]
+-- 3:[Address]
+  --contorl Range Check for [StudioName] [Address]MaritalStatus CountryOfLiving
+SELECT 
+	StudioName,
+	Address,
+	CASE
+	WHEN
+    (LEN(StudioName) NOT BETWEEN 0 AND 50)
+    and (LEN(Address) NOT BETWEEN 0 AND 50) THEN  'Not Correct'
+	ELSE 'Correct'
+	END  AS RangeCheckContorl
+FROM Studio
+GO
+	----------------------------------------
+-- 4:[Phone]  cheaking if the format is not correct
+
+	SELECT
+    Phone,
+    CASE 
+        WHEN Phone LIKE '+1 (___) ___-____' OR Phone LIKE '001 (___) ___-____' THEN 'It is ok'
+        ELSE 'Not Valid Phone'
+    END AS ValidationResult
+FROM
+    Studio
+	GO;
+	----------------------------------------
+
+
+--Identify rows where the StudioName and
+-- Address initial character does not begin with a capital letter and  number 
+
+CREATE VIEW CapitalStudioView AS
+SELECT 
+	StudioName,
+	Address,
+	CASE
+	WHEN NOT (
+    (ASCII(SUBSTRING(StudioName, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+    OR (ASCII(SUBSTRING(StudioName, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))
+)
+OR NOT (
+    (ASCII(SUBSTRING(Address, 1, 1)) BETWEEN ASCII('A') AND ASCII('Z'))
+    OR (ASCII(SUBSTRING(Address, 1, 1)) BETWEEN ASCII('0') AND ASCII('9'))) THEN 'Character does not begin with a capital letter'
+	ELSE 'Character begin with a capital letter'
+	END AS  ValidationForCapital 
+FROM Studio
+GO;
+
+  SELECT * FROM CapitalStudioView
+  GO
+--//////////////////////////////////////////////////
+
+-- Movie table
+--Cheaking Null
+-- Stored procedure to check for NULL values in Movie table
+CREATE PROCEDURE CheckNullValuesInMovie
+    @IncludeMovieID BIT = 1,
+    @IncludeTitle BIT = 1,
+	@IncludeRating BIT = 1,
+	@IncludeMeanRating BIT = 1,
+	@IncludeStdDevRating BIT = 1,
+	@IncludeZScoreRating BIT = 1,
+    @IncludeReleaseYear BIT = 1,
+    @IncludeGenreID BIT = 1,
+    @IncludeStudioID BIT = 1,
+    @IncludeDirectorID BIT = 1,
+    @IncludeActorID BIT = 1,
+    @IncludeAwardID BIT = 1,
+    @IncludeProducerID BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        [MovieID],
+        [Title],
+        [ReleaseYear],
+        [GenreID],
+        [StudioID],
+		[Rating],
+		[MeanRating],
+		[StdDevRating],
+		[ZScoreRating]
+        [DirectorID],
+        [ActorID],
+        [AwardID],
+        [ProducerID]
+		--[ActressID] it is allow to be null becausa of som information 
+
+    FROM
+        Movie
+    WHERE
+        (@IncludeMovieID = 1 AND [MovieID] IS NULL) OR
+        (@IncludeTitle = 1 AND [Title] IS NULL) OR
+        (@IncludeReleaseYear = 1 AND [ReleaseYear] IS NULL) OR
+		(@IncludeRating = 1 AND [Rating] IS NULL) OR
+        (@IncludeMeanRating = 1 AND [MeanRating] IS NULL) OR
+        (@IncludeStdDevRating = 1 AND [ReleaseYear] IS NULL) OR
+		(@IncludeZScoreRating = 1 AND [ReleaseYear] IS NULL) OR
+        (@IncludeGenreID = 1 AND [GenreID] IS NULL) OR
+        (@IncludeStudioID = 1 AND [StudioID] IS NULL) OR
+        (@IncludeDirectorID = 1 AND [DirectorID] IS NULL) OR
+        (@IncludeActorID = 1 AND [ActorID] IS NULL) OR
+        (@IncludeAwardID = 1 AND [AwardID] IS NULL) OR
+        (@IncludeProducerID = 1 AND [ProducerID] IS NULL);
+END
+GO
+EXEC  CheckNullValuesInMovie
+GO
+	----------------------------------------
+
+-- 1: [MovieID]
+-- 2: [Title]
+ --contorl Range Check for Title
+SELECT  
+	Title,
+	CASE
+	WHEN 
+    (LEN(Title) NOT BETWEEN 1 AND 50) THEN  'Not correct'
+	ELSE  'Correct'
+	END AS RangeCheckValidation
+FROM Movie
+GO
+
+	----------------------------------------
+
+--Identify rows where the specified column's initial Title does not begin with a capital letter
+
+CREATE VIEW CapitalTitleView AS
+SELECT	
+	Title,
+	CASE
+	WHEN
+      ASCII(SUBSTRING(Title, 1, 1)) NOT BETWEEN ASCII('A') AND ASCII('Z')THEN 'Title does not begin with a capital letter'
+   ELSE   'Title  begin with a capital letter'
+   END AS CapitalTitle
+FROM Movie 
+GO
+   SELECT * FROM CapitalTitleView;
+   GO
+   	----------------------------------------
+
+-- 3: ReleaseYear   is a 4-digit number. 
+SELECT ReleaseYear,
+    CASE 
+        WHEN ISNUMERIC(ReleaseYear) = 1 AND LEN(ReleaseYear) = 4 THEN 'CORRECT'
+        ELSE 'NOT CORRECT'
+    END AS CONTORL4DigitNumber
+	FROM Movie
+	GO
+		----------------------------------------
+
+-- 4: [GenreID]
+-- 5: [StudioID]
+-- 6: [DirectorID]
+-- 7: [ActorID]
+-- 8: [ActressID]
+-- 9: [AwardID]
+-- 10: [ProducerID]
+--11:[Rating]
+--Check raiting should be betwwen to 10 
+	----------------------------------------
+
+SELECT 
+	Rating,
+    CASE 
+        WHEN ISNUMERIC(Rating) = 1 AND CAST(Rating AS FLOAT) BETWEEN 1 AND 10 THEN 'Correct'
+        ELSE 'Not Correct'
+    END AS RatingValidity
+FROM Movie
+GO
+	----------------------------------------
+
+--12:[MeanRating]
+--check if all values in the Mean column of your dataset are exactly the same
+SELECT
+    CASE
+        WHEN COUNT(DISTINCT MeanRating) = 1 THEN 'All values are the same'
+        ELSE 'Not all values are the same'
+    END AS CheckResult
+FROM Movie;
+GO
+	----------------------------------------
+
+
+--check if all values in the StdDevRating column of your dataset are exactly the same
+--13:[StdDevRating]
+SELECT
+    CASE
+        WHEN COUNT(DISTINCT StdDevRating) = 1 THEN 'All values are the same'
+        ELSE 'Not all values are the same'
+    END AS CheckResult
+FROM Movie;
+GO
+	----------------------------------------
+
+--14:[ZScoreRating]
+
+-- Create a stored procedure to check for invalid foreign key references in Movie table
+CREATE PROCEDURE CheckInvalidMovieForeignKeys
+AS
+BEGIN
+    IF (
+        EXISTS (
+            SELECT 1
+            FROM Movie
+            WHERE 
+                GenreID IS NOT NULL AND GenreID NOT IN (SELECT GenreID FROM Genre)
+                OR StudioID IS NOT NULL AND StudioID NOT IN (SELECT StudioID FROM Studio)
+                OR DirectorID IS NOT NULL AND DirectorID NOT IN (SELECT DirectorID FROM Director)
+                OR ActorID IS NOT NULL AND ActorID NOT IN (SELECT ActorID FROM Actor)
+                OR ActressID IS NOT NULL AND ActressID NOT IN (SELECT ActressID FROM Actress)
+                OR AwardID IS NOT NULL AND AwardID NOT IN (SELECT AwardID FROM Award)
+                OR ProducerID IS NOT NULL AND ProducerID NOT IN (SELECT ProducerID FROM Producer)
+        )
+    )
+    BEGIN
+        PRINT 'Invalid foreign key references found in Movie table.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'All foreign key references in Movie table are valid.';
+    END;
+END
+GO
+EXEC CheckInvalidMovieForeignKeys;
+GO
+	----------------------------------------
+
+-- Create a stored procedure
+CREATE PROCEDURE CalculateZScoresProcedure
+AS
+BEGIN
+    -- Declare variables to store mean and standard deviation
+    DECLARE @Mean_standard FLOAT, @StdDev_standard FLOAT;
+
+    -- Calculate mean and standard deviation
+    SELECT 
+        @Mean_standard = AVG([Rating]),
+        @StdDev_standard = STDEVP([Rating])
+    FROM Movie;
+
+    -- Select the Title, Rating, and calculated Z-scores
+    SELECT 
+        Title,
+        Rating,
+        ROUND((Rating - @Mean_standard) / @StdDev_standard, 4) AS ZScore_SQL
+    FROM 
+        Movie;
+END
+GO
+EXEC CalculateZScoresProcedure
+GO
+	----------------------------------------
+
+------ Create a PROCEDURE to the comparison results and order by the one which is not correcet 
+CREATE PROCEDURE CompareZScores
+AS
+BEGIN
+    SELECT 
+        Title,
+        Rating,
+        ROUND(ZScoreRating, 4) AS ZScoreRating,
+        ROUND((Rating - (SELECT AVG(Rating) FROM Movie)) / (SELECT STDEVP(Rating) FROM Movie), 4) AS ZScore_SQL,
+        CASE 
+            WHEN ROUND(ZScoreRating, 4) = ROUND((Rating - (SELECT AVG(Rating) FROM Movie)) / (SELECT STDEVP(Rating) FROM Movie), 4) THEN 'It is ok'
+            ELSE 'It is not ok'
+        END AS ComparisonResult
+    FROM 
+        Movie
+    ORDER BY 
+        CASE 
+            WHEN ROUND(ZScoreRating, 4) = ROUND((Rating - (SELECT AVG(Rating) FROM Movie)) / (SELECT STDEVP(Rating) FROM Movie), 4) THEN 1
+            ELSE 0
+        END DESC
+END
+GO
+
+EXEC CompareZScores;
+
+
+GO
+EXEC CompareZScores
+GO
+--///////////////////////////// QUESTION FROM DATABASE/////////////////////////////////////
+--1 . SEE FOR ONE specefic movie all information  using join 
+
+SELECT 
+	CONCAT (M.Title, 'has made in ' ,M.ReleaseYear),
+	CONCAT (A.FirstName, ' ' , A.LastName) AS ActorName,
+	CONCAT (AC.FirstName, ' ' , AC.LastName) AS ActressName,
+	CONCAT (D.FirstName, ' ' , D.LastName) AS DirectorName,
+	CONCAT (P.FirstName, ' ' , P.LastName) AS ProducerName
+FROM Movie M
+INNER JOIN Actor A ON A.ActorID=M.ActorID
+INNER JOIN Actress AC ON AC.ActressID=M.ActressID
+INNER JOIN  Director D  ON D.DirectorID=M.DirectorID
+INNER JOIN  Producer P ON P.ProducerID=M.ProducerID
+
+
+
+---------------------------------
+
+--2.Seeing Actor Married and order than 24
+CREATE VIEW MarriedOlderThan24Years AS 
+ SELECT  
+    CONCAT(A.FirstName, ' IS ', A.MaritalStatus, ' AND born in ', A.Birthday) AS ActorDetail,
+    CONCAT(AC.FirstName, ' IS ', AC.MaritalStatus, ' AND born in ', AC.Birthday) AS ActressDetail  
+FROM 
+    Movie M
+    INNER JOIN Actor A ON A.ActorID = M.ActorID
+    INNER JOIN Actress AC ON AC.ActressID = M.ActressID
+WHERE  
+    A.MaritalStatus = 'Married' 
+    AND AC.MaritalStatus = 'Married'
+    AND A.Birthday < '2000-01-01' 
+    AND AC.Birthday < '2000-01-01';
+GO
+SELECT *FROM
+MarriedOlderThan24Years
+GO
+ ------------------------------
+ --3. Checking those who have more than 30 years Experience or less give a messege 
+
+CREATE PROCEDURE CheckAgeOfExperience
+    @Experience TINYINT
+AS
+BEGIN
+    SELECT 
+        CONCAT(A.FirstName, ' has ' , A.AgeOfExperience ,'Years Experience' ) AS ActorDetails,
+        'Actor: ' + 
+            CASE 
+                WHEN @Experience < A.AgeOfExperience THEN 'WOW good job'
+                WHEN A.AgeOfExperience IS NULL THEN 'No Information?'
+                ELSE 'KEEP GOING'
+            END AS MessegeForActor,
+        CONCAT(AC.FirstName, ' has ' , AC.AgeOfExperience ,'Years Experience' )  AS ActressDetails,
+        'Actress: ' + 
+            CASE 
+                WHEN @Experience < AC.AgeOfExperience THEN 'WOW good job'
+                WHEN AC.AgeOfExperience IS NULL THEN 'No Information?'
+                ELSE 'KEEP GOING'
+            END AS MessegeForActress,
+			CONCAT(P.FirstName, ' has ' , P.AgeOfExperience ,'Years Experience' ) AS ProducerDetails,
+        'Producer: ' + 
+            CASE 
+                WHEN @Experience < P.AgeOfExperience THEN 'WOW good job'
+                WHEN P.AgeOfExperience IS NULL THEN 'No Information?'
+                ELSE 'KEEP GOING'
+            END AS MessegeForProducer
+    FROM 
+        Movie M
+        INNER JOIN Actor A ON A.ActorID = M.ActorID
+        INNER JOIN Actress AC ON AC.ActressID = M.ActressID
+		INNER JOIN  Producer P ON P.ProducerID=M.ProducerID
+
+		
+END
+GO
+
+EXEC CheckAgeOfExperience @Experience = 30
+GO
+
+
+
+
+------------------------------
